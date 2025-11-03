@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>ESP32 Live Data</title>
+  <!-- 1. โหลด Socket.io จาก Server ของเรา -->
+  <script src="/socket.io/socket.io.js"></script>
+  
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; padding: 20px; }
+    h1 { border-bottom: 2px solid #eee; padding-bottom: 10px; }
+    pre { background-color: #f4f4f4; padding: 15px; border-radius: 8px; }
+    button {
+      font-size: 16px;
+      padding: 10px 20px;
+      margin: 5px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      background-color: #007aff;
+      color: white;
+    }
+    button:last-of-type {
+      background-color: #555;
+    }
+  </style>
+</head>
+<body>
+  
+  <h1>🌡️ Real-time Data from ESP32</h1>
+  <pre id="output">Waiting for data...</pre>
+
+  <h1>💡 ESP32 Light Control</h1>
+  <button onclick="sendCommand('on')">เปิดไฟ (ON)</button>
+  <button onclick="sendCommand('off')">ปิดไฟ (OFF)</button>
+
+  <!-- 2. รวม JavaScript ไว้ที่เดียว -->
+  <script>
+    // --- ส่วน Socket.io (แสดงข้อมูล) ---
+    const socket = io();
+    const outputEl = document.getElementById("output");
+    
+    socket.on("newData", data => {
+      outputEl.textContent = JSON.stringify(data, null, 2);
+    });
+
+    socket.on("connect", () => {
+      console.log("Socket.io connected!");
+    });
+
+    // --- ส่วน Fetch (ส่งคำสั่ง) ---
+    
+    // ❗️ ไม่ต้องใช้ NGROK_URL อีกต่อไป
+    // const NGROK_URL = "http://779144a8ad03.ngrok-free.app"; // 👈 ลบทิ้ง
+
+    async function sendCommand(state) {
+      console.log("Sending command:", state);
+      try {
+        // ❗️ แก้ไขตรงนี้: ใช้ relative path
+        //    มันจะส่ง "/control" ไปยัง server ที่เราเปิดหน้านี้อยู่
+        //    (ไม่ว่าจะเป็น localhost:3000 หรือ ngrok URL ก็ตาม)
+        const response = await fetch('/control', { // 👈 แก้ไขแล้ว
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'ngrok-skip-browser-warning': 'true' // (ใส่ไว้ก็ไม่เสียหาย)
+          },
+          body: JSON.stringify({ state: state })
+        });
+        
+        const result = await response.json();
+        console.log("Server response:", result);
+      } catch (error) {
+        console.error("Error sending command:", error);
+      }
+    }
+  </script>
+</body>
+</html>
